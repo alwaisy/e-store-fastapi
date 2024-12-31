@@ -9,6 +9,10 @@ from alembic import context
 from sqlmodel import SQLModel
 from app.config import Config
 
+# looks like it is not used but actually it is required push models to db
+from app.db.models import Product
+
+
 
 database_url = Config.ES_DB
 
