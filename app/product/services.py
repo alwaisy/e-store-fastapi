@@ -3,6 +3,7 @@
 # store
 # update
 # destroy
+
 from sqlmodel import desc, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -44,5 +45,13 @@ class ProductService:
             await session.commit()
 
             return product_update
+        else:
+            return None
+
+    async def destroy(self, session: AsyncSession, product_id: str):
+        product_delete = await self.show(session, product_id)
+        if product_delete is not None:
+            await session.delete(product_delete)
+            await session.commit()
         else:
             return None

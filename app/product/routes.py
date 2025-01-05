@@ -2,6 +2,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
+from starlette.responses import JSONResponse
 
 from app.db.main import get_session
 from app.db.models import Product
@@ -38,9 +39,18 @@ async def create(product: Product, session: AsyncSession = Depends(get_session))
 
 @product_router.patch("/{id}/update", response_model=ProductMutationSchema)
 async def update(id: str, product: Product, session: AsyncSession = Depends(get_session)) -> dict:
-    updated_product = await product_service.update(session, id, product)
-
-    if updated_product is None:
-        raise HTTPException(status_code=404, detail="Product not found")
-    else:
+    try:
+        updated_product = await product_service.update(session, id, product)
         return updated_product
+    except:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+
+@product_router.delete("/{id}/delete", status_code=status.HTTP_204_NO_CONTENT)
+async def delete(id: str, session: AsyncSession = Depends(get_session)):
+    try:
+        await product_service.destroy(session, id)
+        return JSONResponse(content={"method": "delete", "message": f"Product with id {id} deleted"}, status_code=200)
+
+    except:
+        raise HTTPException(status_code=404, detail="Product not found")
