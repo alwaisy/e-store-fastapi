@@ -20,12 +20,11 @@ class User(SQLModel, table=True):
     email: str
     f_name: str = Field(nullable=True)
     l_name: str = Field(nullable=True)
+    role: str = Field(
+        sa_column=Column(pg.VARCHAR, nullable=False, server_default="user")
+    )
     password_hash: str = Field(
-        sa_column=Column(
-            pg.VARCHAR,
-            nullable=False
-        ),
-        exclude=True
+        sa_column=Column(pg.VARCHAR, nullable=False), exclude=True
     )
     is_verified: bool = False
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
