@@ -5,10 +5,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.responses import JSONResponse
 
 from app.db.main import get_session
-from app.db.models import Product
 from app.errors import ProductNotFound
-from app.product.schema import ProductMutationSchema
-from app.product.services import ProductService
+from .models import Product
+from .schema import ProductMutationSchema
+from .services import ProductService
 
 product_router = APIRouter()
 product_service = ProductService()

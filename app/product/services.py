@@ -7,8 +7,8 @@
 from sqlmodel import desc, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.db.models import Product
-from app.product.schema import ProductMutationSchema
+from .models import Product
+from .schema import ProductMutationSchema
 
 
 class ProductService:
@@ -25,8 +25,8 @@ class ProductService:
 
         return product if product else None
 
-    async def store(self, session: AsyncSession, product: ProductMutationSchema):
-        product_dict = product.model_dump()
+    async def store(self, session: AsyncSession, product_data: ProductMutationSchema):
+        product_dict = product_data.model_dump()
         new_product = Product(**product_dict)
         # print(Product(**product_dict))
         session.add(new_product)

@@ -1,18 +1,17 @@
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
 from sqlmodel import SQLModel
-from app.config import Config
 
 # looks like it is not used but actually it is required push models to db
-from app.db.models import Product
-
-
+# from app.product.models import Product
+# noinspection PyUnresolvedReferences
+from app.auth.models import User
+from app.config import Config
 
 database_url = Config.ES_DB
 
@@ -32,6 +31,7 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
