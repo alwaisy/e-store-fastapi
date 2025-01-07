@@ -3,7 +3,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from .models import User
 from .schema import UserStoreSchema
-from .utils import gen_passwd_hash
+from .utils import gen_password_hash
 
 
 class AuthService:
@@ -12,7 +12,7 @@ class AuthService:
         new_user = User(**user_dict)
 
         # hash password
-        new_user.password_hash = gen_passwd_hash(user_data.password)
+        new_user.password_hash = gen_password_hash(user_data.password)
 
         # add and commit
         session.add(new_user)

@@ -12,7 +12,7 @@ passwd_context = CryptContext(schemes=["bcrypt"])
 ACCESS_TOKEN_EXPIRY = 3600
 
 
-def gen_passwd_hash(password: str) -> str:
+def gen_password_hash(password: str) -> str:
     """
     Generates a hashed password based on `password`.
 
@@ -81,6 +81,12 @@ def decode_token(token: str):
     Raises:
         jwt.PyJWTError: If an error occurs during token decoding.
     """
+
+    print(token)
+
+    if len(token) == 0:
+        return None
+
     try:
         return jwt.decode(
             jwt=token, key=Config.JWT_SECRET, algorithms=[Config.JWT_ALGORITHM]

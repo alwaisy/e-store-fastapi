@@ -3,9 +3,10 @@ from fastapi import FastAPI as App
 from .auth.routes import auth_router
 from .db.main import init_db
 from .errors import register_all_errors
+from .middleware import register_middleware
 from .product.routes import product_router
 
-version = 'v1'
+version = "v1"
 version_prefix = f"/api/{version}"
 
 # the lifespan event / need in dev server especially to create tables in db
@@ -23,10 +24,11 @@ app = App(
     # lifespan=lifespan,
     openapi_url=f"{version_prefix}/openapi.json",
     docs_url=f"{version_prefix}/docs",
-    redoc_url=f"{version_prefix}/redoc"
+    redoc_url=f"{version_prefix}/redoc",
 )
 
 register_all_errors(app)
+register_middleware(app)
 
-app.include_router(product_router, prefix=f"/api/{version}/products", tags=['products'])
-app.include_router(auth_router, prefix=f"/api/{version}/auth", tags=['auth'])
+app.include_router(product_router, prefix=f"/api/{version}/products", tags=["products"])
+app.include_router(auth_router, prefix=f"/api/{version}/auth", tags=["auth"])
