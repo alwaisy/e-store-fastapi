@@ -58,7 +58,7 @@ async def signup(
         new_user = await auth_service.store(user_data, session)
         email = new_user.email
 
-        token = create_url_safe_token({"email": email}, "email_verification")
+        token = create_url_safe_token({"email": email}, "email_verification", 6)
         link = f"http://{Config.DOMAIN}/api/v1/auth/verify/{token}"
 
         html = f"""
@@ -88,6 +88,8 @@ async def verify_email(token: str, session: AsyncSession = Depends(get_session))
             raise UserNotFound()
 
         await auth_service.update(user, {"is_verified": True}, session)
+        await add_jti_to_blocklist(payload["jti"])
+
         return JSONResponse(
             content={"message": "Account verified successfully"},
             status_code=status.HTTP_200_OK,
