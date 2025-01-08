@@ -1,24 +1,50 @@
 from datetime import timedelta, datetime
 
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.responses import JSONResponse
 
 from .dependencies import RefreshTokenBearer, get_current_user, RoleChecker
-from .schema import UserStoreSchema, UserSchema, UserLoginSchema
+from .schema import (
+    UserStoreSchema,
+    UserSchema,
+    UserLoginSchema,
+    EmailSchema,
+    PasswordResetConfirmSchema,
+    PasswordResetRequestSchema,
+)
 from .services import AuthService
-from .utils import verify_password, create_access_token
+from .utils import (
+    verify_password,
+    create_access_token,
+    create_url_safe_token,
+    decode_url_safe_token,
+    gen_password_hash,
+)
+from ..config import Config
 from ..db.main import get_session
-from ..errors import UserAlreadyExists, InvalidCredentials, InvalidToken
+from ..errors import UserAlreadyExists, InvalidCredentials, InvalidToken, UserNotFound
+from ..mail import mail, create_message
 
 auth_router = APIRouter()
 auth_service = AuthService()
 role_checker = RoleChecker(["admin", "user"])
 
 
-@auth_router.post(
-    "/signup", status_code=status.HTTP_201_CREATED, response_model=UserSchema
-)
+@auth_router.post("/send-mail")
+async def send_mail(emails: EmailSchema):
+    emails = emails.addresses
+
+    html = "<h1>Welcome to the app</h1>"
+    subject = "Welcome to our app"
+
+    message = create_message(recipients=emails, subject=subject, body=html)
+    await mail.send_message(message)
+
+    return {"message": "Email sent successfully"}
+
+
+@auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
 async def signup(
     user_data: UserStoreSchema, session: AsyncSession = Depends(get_session)
 ):
@@ -28,7 +54,46 @@ async def signup(
         raise UserAlreadyExists()
     else:
         new_user = await auth_service.store(user_data, session)
-        return new_user
+        email = new_user.email
+
+        token = create_url_safe_token({"email": email})
+        link = f"http://{Config.DOMAIN}/api/v1/auth/verify/{token}"
+
+        html = f"""
+        <h1>Verify your Email</h1>
+        <p>Please click this <a href="{link}">link</a> to verify your email</p>
+        """
+        emails = [email]
+        subject = "Verify Your email"
+
+        await mail.send_message(create_message(emails, subject, html))
+
+        return {
+            "message": "Account Created! Check email to verify your account",
+            "user": new_user,
+        }
+
+
+@auth_router.get("/verify/{token}")
+async def verify_email(token: str, session: AsyncSession = Depends(get_session)):
+    email = decode_url_safe_token(token).get("email")
+
+    if email:
+        user = await auth_service.show(email, session)
+
+        if not user:
+            raise UserNotFound()
+
+        await auth_service.update(user, {"is_verified": True}, session)
+        return JSONResponse(
+            content={"message": "Account verified successfully"},
+            status_code=status.HTTP_200_OK,
+        )
+    else:
+        return JSONResponse(
+            content={"message": "Error occurred during verification"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 @auth_router.post("/login")
@@ -64,8 +129,7 @@ async def login(
                     # }
                 }
             )
-    else:
-        raise InvalidCredentials()
+    raise InvalidCredentials()
 
 
 @auth_router.get("/refresh_token")
@@ -83,3 +147,66 @@ async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer(
 @auth_router.get("/me", response_model=UserSchema, dependencies=[Depends(role_checker)])
 async def get_current_user(user=Depends(get_current_user)):
     return user
+
+
+@auth_router.post("/reset-password")
+async def password_reset_request(email_data: PasswordResetRequestSchema):
+    email = email_data.email
+
+    token = create_url_safe_token({"email": email})
+
+    link = f"http://{Config.DOMAIN}/api/v1/auth/password-reset-confirm/{token}"
+
+    emails = [email]
+    html_message = f"""
+    <h1>Reset Your Password</h1>
+    <p>Please click this <a href="{link}">link</a> to Reset Your Password</p>
+    """
+    subject = "Reset Your Password"
+
+    await mail.send_message(create_message(emails, subject, html_message))
+
+    return JSONResponse(
+        content={
+            "message": "Please check your email for instructions to reset your password",
+        },
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@auth_router.post("/reset-password/{token}")
+async def reset_account_password(
+    token: str,
+    passwords: PasswordResetConfirmSchema,
+    session: AsyncSession = Depends(get_session),
+):
+    new_password = passwords.new_password
+    confirm_password = passwords.confirm_new_password
+
+    if new_password != confirm_password:
+        raise HTTPException(
+            detail="Passwords do not match", status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    token_data = decode_url_safe_token(token)
+
+    user_email = token_data.get("email")
+
+    if user_email:
+        user = await auth_service.show(user_email, session)
+
+        if not user:
+            raise UserNotFound()
+
+        passwd_hash = gen_password_hash(new_password)
+        await auth_service.update(user, {"password_hash": passwd_hash}, session)
+
+        return JSONResponse(
+            content={"message": "Password reset Successfully"},
+            status_code=status.HTTP_200_OK,
+        )
+
+    return JSONResponse(
+        content={"message": "Error occurred during password reset."},
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )

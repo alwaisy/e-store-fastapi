@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
+from typing import List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 
 
 class UserStoreSchema(BaseModel):
@@ -39,3 +40,16 @@ class UserSchema(BaseModel):
     password_hash: str = Field(exclude=True)
     created_at: datetime
     update_at: datetime
+
+
+class EmailSchema(BaseModel):
+    addresses: List[EmailStr]
+
+
+class PasswordResetRequestSchema(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirmSchema(BaseModel):
+    new_password: str = Field(min_length=6)
+    confirm_new_password: str = Field(min_length=6)
