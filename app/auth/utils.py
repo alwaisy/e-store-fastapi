@@ -98,35 +98,64 @@ def decode_token(token: str):
         return None
 
 
-def create_url_safe_token(data: dict):
+def create_url_safe_token(
+    data: dict, token_type: str, expiration_hours: int = 1
+) -> str:
     """
-    Create a JWT token for password reset with JTI
+    Create a JWT token for a specific purpose (e.g., password reset, email verification).
+
+    :param data: Dictionary containing user-specific data (e.g., user ID, email).
+    :param token_type: The purpose of the token (e.g., "password_reset", "email_verification").
+    :param expiration_hours: Token expiration time in hours (default is 1 hour).
+    :return: A URL-safe JWT token.
     """
     payload = {
         **data,
-        "exp": datetime.now() + timedelta(hours=1),
-        "jti": str(uuid.uuid4()),
-        "type": "password_reset",
+        "exp": datetime.now() + timedelta(hours=expiration_hours),  # Token expiration
+        "jti": str(uuid.uuid4()),  # Unique token identifier
+        "type": token_type,  # Token type (e.g., "password_reset", "email_verification")
     }
 
     return jwt.encode(payload, Config.JWT_SECRET, algorithm=Config.JWT_ALGORITHM)
 
 
-async def verify_reset_token(token: str) -> dict:
+async def verify_token(token: str, token_type: str) -> dict:
     """
-    Verify password reset token and check blocklist
-    """
-    payload = decode_token(token)
+    Verify a JWT token and ensure it matches the expected type and is not in the blocklist.
 
-    if not payload or payload.get("type") != "password_reset":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset token"
+    :param token: The JWT token to verify.
+    :param token_type: The expected token type (e.g., "password_reset", "email_verification").
+    :return: The decoded payload if the token is valid.
+    :raises HTTPException: If the token is invalid, expired, or has been used.
+    """
+    # Decode the token
+    try:
+        payload = jwt.decode(
+            token, Config.JWT_SECRET, algorithms=[Config.JWT_ALGORITHM]
         )
-
-    if await token_in_blocklist(payload["jti"]):
+    except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reset token has already been used",
+            detail="Token has expired",
+        )
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid token",
+        )
+
+    # Check if the token type matches
+    if payload.get("type") != token_type:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid token for {token_type}",
+        )
+
+    # Check if the token is in the blocklist
+    if await token_in_blocklist(payload["jti"]):  # Assumes `token_in_blocklist` exists
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token has already been used",
         )
 
     return payload

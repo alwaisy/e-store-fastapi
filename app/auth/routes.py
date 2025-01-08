@@ -20,7 +20,7 @@ from .utils import (
     create_access_token,
     create_url_safe_token,
     gen_password_hash,
-    verify_reset_token,
+    verify_token,
 )
 from ..config import Config
 from ..db.main import get_session
@@ -58,7 +58,7 @@ async def signup(
         new_user = await auth_service.store(user_data, session)
         email = new_user.email
 
-        token = create_url_safe_token({"email": email})
+        token = create_url_safe_token({"email": email}, "email_verification")
         link = f"http://{Config.DOMAIN}/api/v1/auth/verify/{token}"
 
         html = f"""
@@ -78,10 +78,11 @@ async def signup(
 
 @auth_router.get("/verify/{token}")
 async def verify_email(token: str, session: AsyncSession = Depends(get_session)):
-    email = decode_url_safe_token(token).get("email")
+    payload = await verify_token(token, "email_verification")
+    user_email = payload.get("email")
 
-    if email:
-        user = await auth_service.show(email, session)
+    if user_email:
+        user = await auth_service.show(user_email, session)
 
         if not user:
             raise UserNotFound()
@@ -155,7 +156,7 @@ async def get_current_user(user=Depends(get_current_user)):
 async def password_reset_request(email_data: PasswordResetRequestSchema):
     email = email_data.email
 
-    token = create_url_safe_token({"email": email})
+    token = create_url_safe_token({"email": email}, "password_reset", 6)
 
     link = f"http://{Config.DOMAIN}/api/v1/auth/password-reset-confirm/{token}"
 
@@ -188,9 +189,7 @@ async def reset_account_password(
                 detail="Passwords do not match", status_code=status.HTTP_400_BAD_REQUEST
             )
 
-        payload = await verify_reset_token(
-            token
-        )  # This already handles used token error
+        payload = await verify_token(token, "password_reset")
         user_email = payload.get("email")
 
         user = await auth_service.show(user_email, session)
