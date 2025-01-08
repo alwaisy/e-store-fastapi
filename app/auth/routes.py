@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta, datetime
 
 from fastapi import APIRouter, status, Depends, HTTPException
@@ -18,11 +19,12 @@ from .utils import (
     verify_password,
     create_access_token,
     create_url_safe_token,
-    decode_url_safe_token,
     gen_password_hash,
+    verify_reset_token,
 )
 from ..config import Config
 from ..db.main import get_session
+from ..db.redis import add_jti_to_blocklist
 from ..errors import UserAlreadyExists, InvalidCredentials, InvalidToken, UserNotFound
 from ..mail import mail, create_message
 
@@ -180,33 +182,35 @@ async def reset_account_password(
     passwords: PasswordResetConfirmSchema,
     session: AsyncSession = Depends(get_session),
 ):
-    new_password = passwords.new_password
-    confirm_password = passwords.confirm_new_password
+    try:
+        if not passwords.new_password == passwords.confirm_new_password:
+            raise HTTPException(
+                detail="Passwords do not match", status_code=status.HTTP_400_BAD_REQUEST
+            )
 
-    if new_password != confirm_password:
-        raise HTTPException(
-            detail="Passwords do not match", status_code=status.HTTP_400_BAD_REQUEST
-        )
+        payload = await verify_reset_token(
+            token
+        )  # This already handles used token error
+        user_email = payload.get("email")
 
-    token_data = decode_url_safe_token(token)
-
-    user_email = token_data.get("email")
-
-    if user_email:
         user = await auth_service.show(user_email, session)
-
         if not user:
             raise UserNotFound()
 
-        passwd_hash = gen_password_hash(new_password)
+        passwd_hash = gen_password_hash(passwords.new_password)
         await auth_service.update(user, {"password_hash": passwd_hash}, session)
+        await add_jti_to_blocklist(payload["jti"])
 
         return JSONResponse(
-            content={"message": "Password reset Successfully"},
+            content={"message": "Password reset successfully"},
             status_code=status.HTTP_200_OK,
         )
 
-    return JSONResponse(
-        content={"message": "Error occurred during password reset."},
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    )
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions to keep their specific status codes/messages
+    except Exception as err:
+        logging.error(f"Password reset error: {str(err)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while resetting password",
+        )

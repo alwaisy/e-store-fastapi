@@ -3,10 +3,11 @@ import uuid
 from datetime import timedelta, datetime
 
 import jwt
-from itsdangerous import URLSafeTimedSerializer
+from fastapi import HTTPException, status
 from passlib.context import CryptContext
 
 from app.config import Config
+from app.db.redis import token_in_blocklist
 
 passwd_context = CryptContext(schemes=["bcrypt"])
 
@@ -26,18 +27,18 @@ def gen_password_hash(password: str) -> str:
     return passwd_context.hash(password)
 
 
-def verify_password(password: str, hash: str) -> bool:
+def verify_password(password: str, passwd_hash: str) -> bool:
     """
-    Verifies if a password matches a given hash.
+    Verifies if a password matches a given passwd_hash.
 
     Args:
         password: The password to be verified.
-        hash: The hash to be verified against.
+        passwd_hash: The passwd_hash to be verified against.
 
     Returns:
-        True if the password matches the hash, False otherwise.
+        True if the password matches the passwd_hash, False otherwise.
     """
-    return passwd_context.verify(password, hash)
+    return passwd_context.verify(password, passwd_hash)
 
 
 def create_access_token(
@@ -83,7 +84,7 @@ def decode_token(token: str):
         jwt.PyJWTError: If an error occurs during token decoding.
     """
 
-    print(token)
+    # print(token)
 
     if len(token) == 0:
         return None
@@ -97,22 +98,35 @@ def decode_token(token: str):
         return None
 
 
-serializer = URLSafeTimedSerializer(
-    secret_key=Config.JWT_SECRET, salt="email-configuration"
-)
-
-
 def create_url_safe_token(data: dict):
-    token = serializer.dumps(data)
+    """
+    Create a JWT token for password reset with JTI
+    """
+    payload = {
+        **data,
+        "exp": datetime.now() + timedelta(hours=1),
+        "jti": str(uuid.uuid4()),
+        "type": "password_reset",
+    }
 
-    return token
+    return jwt.encode(payload, Config.JWT_SECRET, algorithm=Config.JWT_ALGORITHM)
 
 
-def decode_url_safe_token(token: str):
-    try:
-        token_data = serializer.loads(token)
+async def verify_reset_token(token: str) -> dict:
+    """
+    Verify password reset token and check blocklist
+    """
+    payload = decode_token(token)
 
-        return token_data
+    if not payload or payload.get("type") != "password_reset":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset token"
+        )
 
-    except Exception as err:
-        logging.error(str(err))
+    if await token_in_blocklist(payload["jti"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token has already been used",
+        )
+
+    return payload

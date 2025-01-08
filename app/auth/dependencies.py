@@ -16,6 +16,7 @@ from app.errors import (
 from .models import User
 from .services import AuthService
 from .utils import decode_token
+from ..db.redis import token_in_blocklist
 
 auth_service = AuthService()
 
@@ -33,8 +34,8 @@ class TokenBearer(HTTPBearer):
         if not self.token_valid(token):
             raise InvalidToken()
 
-            # if await token_in_blocklist(token_data["jti"]):
-            #     raise InvalidToken()
+        if await token_in_blocklist(token_data["jti"]):
+            raise InvalidToken()
 
         self.verify_token_data(token_data)
 
