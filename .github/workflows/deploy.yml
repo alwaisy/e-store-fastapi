@@ -37,7 +37,7 @@ jobs:
           script: |
             echo "Deploying application..."
             cd ~/www/e-store-fastapi  # Navigate to your project directory
-            git pull origin main  # Pull the latest changes
+            git pull origin master  # Pull the latest changes
             docker-compose down  # Stop existing containers
             # Pass GitHub Secrets as environment variables to docker-compose
             DATABASE_URL=${{ secrets.DATABASE_URL }} \
