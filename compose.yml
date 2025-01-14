@@ -1,0 +1,61 @@
+version: "3.0"
+
+services:
+  web:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_SERVER: ${MAIL_SERVER}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_FROM: ${MAIL_FROM}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      DOMAIN: ${DOMAIN}
+      REDIS_URL: ${REDIS_URL}
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      - db
+      - redis
+
+    networks:
+      - e-store-fastapi-network
+
+  db:
+    image: postgres:15
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: e-store-fastapi
+      POSTGRES_PASSWORD: testpass
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+    networks:
+      - e-store-fastapi-network
+  redis:
+    image: redis:6
+
+    ports:
+      - "6379:6379"
+
+    networks:
+      - e-store-fastapi-network
+
+volumes:
+  db-data:
+
+networks:
+  e-store-fastapi-network:
+    driver: bridge

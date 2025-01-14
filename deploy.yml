@@ -1,0 +1,55 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Install dependencies (if needed)
+      - name: Install dependencies
+        run: |
+          echo "Installing dependencies..."
+          # Add commands to install dependencies here (e.g., npm install, pip install)
+
+      # Step 3: Build Docker image
+      - name: Build Docker image
+        run: |
+          echo "Building Docker image..."
+          docker build -t your-app-image .
+
+      # Step 4: Deploy to VPS
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }} # VPS IP or domain
+          username: ${{ secrets.VPS_USER }} # VPS username
+          key: ${{ secrets.VPS_SSH_KEY }} # Private SSH key
+          port: 2222 # Custom SSH port
+          script: |
+            echo "Deploying application..."
+            cd /path/to/your/project  # Navigate to your project directory
+            git pull origin main  # Pull the latest changes
+            docker-compose down  # Stop existing containers
+            # Pass GitHub Secrets as environment variables to docker-compose
+            DATABASE_URL=${{ secrets.DATABASE_URL }} \
+            JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            JWT_ALGORITHM=${{ secrets.JWT_ALGORITHM }} \
+            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }} \
+            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }} \
+            MAIL_SERVER=${{ secrets.MAIL_SERVER }} \
+            MAIL_PORT=${{ secrets.MAIL_PORT }} \
+            MAIL_FROM=${{ secrets.MAIL_FROM }} \
+            MAIL_FROM_NAME=${{ secrets.MAIL_FROM_NAME }} \
+            DOMAIN=${{ secrets.DOMAIN }} \
+            REDIS_URL=${{ secrets.REDIS_URL }} \
+            docker-compose up -d  # Start new containers
+            echo "Deployment complete!"
