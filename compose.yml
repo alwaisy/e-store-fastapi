@@ -6,7 +6,7 @@ services:
     volumes:
       - .:/app
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      ES_DB: ${ES_DB}
       JWT_SECRET: ${JWT_SECRET}
       JWT_ALGORITHM: ${JWT_ALGORITHM}
       MAIL_USERNAME: ${MAIL_USERNAME}
