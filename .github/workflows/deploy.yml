@@ -51,7 +51,7 @@ jobs:
             docker compose down  
 
             # Pass GitHub Secrets as environment variables to docker-compose
-            DATABASE_URL=${{ secrets.DATABASE_URL }} \
+            ES_DB=${{ secrets.ES_DB }} \
             JWT_SECRET=${{ secrets.JWT_SECRET }} \
             JWT_ALGORITHM=${{ secrets.JWT_ALGORITHM }} \
             MAIL_USERNAME=${{ secrets.MAIL_USERNAME }} \
