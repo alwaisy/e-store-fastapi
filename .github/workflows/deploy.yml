@@ -28,7 +28,7 @@ jobs:
 
       # Step 4: Deploy to VPS
       - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }} # VPS IP or domain
           username: ${{ secrets.VPS_USER }} # VPS username
