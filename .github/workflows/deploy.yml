@@ -50,17 +50,6 @@ jobs:
             # Stop existing containers
             docker compose down  
 
-            # Pass GitHub Secrets as environment variables to docker-compose
-            ES_DB=${{ secrets.ES_DB }} \
-            JWT_SECRET=${{ secrets.JWT_SECRET }} \
-            JWT_ALGORITHM=${{ secrets.JWT_ALGORITHM }} \
-            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }} \
-            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }} \
-            MAIL_SERVER=${{ secrets.MAIL_SERVER }} \
-            MAIL_PORT=${{ secrets.MAIL_PORT }} \
-            MAIL_FROM=${{ secrets.MAIL_FROM }} \
-            MAIL_FROM_NAME=${{ secrets.MAIL_FROM_NAME }} \
-            DOMAIN=${{ secrets.DOMAIN }} \
-            REDIS_URL=${{ secrets.REDIS_URL }} \
+            # Build and start new containers
             docker compose up -d  # Start new containers
             echo "Deployment complete!"
