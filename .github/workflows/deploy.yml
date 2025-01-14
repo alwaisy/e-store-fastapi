@@ -38,7 +38,7 @@ jobs:
             echo "Deploying application..."
             cd ~/www/e-store-fastapi  # Navigate to your project directory
             git pull origin master  # Pull the latest changes
-            docker-compose down  # Stop existing containers
+            docker compose down  # Stop existing containers
             # Pass GitHub Secrets as environment variables to docker-compose
             DATABASE_URL=${{ secrets.DATABASE_URL }} \
             JWT_SECRET=${{ secrets.JWT_SECRET }} \
@@ -51,5 +51,5 @@ jobs:
             MAIL_FROM_NAME=${{ secrets.MAIL_FROM_NAME }} \
             DOMAIN=${{ secrets.DOMAIN }} \
             REDIS_URL=${{ secrets.REDIS_URL }} \
-            docker-compose up -d  # Start new containers
+            docker compose up -d  # Start new containers
             echo "Deployment complete!"
