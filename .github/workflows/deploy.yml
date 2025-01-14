@@ -45,7 +45,7 @@ jobs:
             ssh-add ~/.ssh/letscode@62.169.28.254 2>/dev/null
 
             # Pull the latest changes
-            git pull origin master  
+            git pull origin master --no-rebase  
 
             # Stop existing containers
             docker compose down  
