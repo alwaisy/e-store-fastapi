@@ -36,7 +36,7 @@ jobs:
           port: 2222 # Custom SSH port
           script: |
             echo "Deploying application..."
-            cd /path/to/your/project  # Navigate to your project directory
+            cd ~/www/e-store-fastapi  # Navigate to your project directory
             git pull origin main  # Pull the latest changes
             docker-compose down  # Stop existing containers
             # Pass GitHub Secrets as environment variables to docker-compose
