@@ -39,5 +39,6 @@ def register_middleware(app: FastAPI):
             "127.0.0.1",
             # "bookly-api-dc03.onrender.com",
             # "0.0.0.0",
+            '62.169.28.254',
         ],
     )
