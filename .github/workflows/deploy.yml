@@ -36,9 +36,20 @@ jobs:
           port: 2222 # Custom SSH port
           script: |
             echo "Deploying application..."
-            cd ~/www/e-store-fastapi  # Navigate to your project directory
-            git pull origin master  # Pull the latest changes
-            docker compose down  # Stop existing containers
+
+            # Navigate to your project directory
+            cd ~/www/e-store-fastapi  
+
+            # Start SSH agent and add the SSH key
+            eval "$(ssh-agent -s)" > /dev/null
+            ssh-add ~/.ssh/letscode@62.169.28.254 2>/dev/null
+
+            # Pull the latest changes
+            git pull origin master  
+
+            # Stop existing containers
+            docker compose down  
+
             # Pass GitHub Secrets as environment variables to docker-compose
             DATABASE_URL=${{ secrets.DATABASE_URL }} \
             JWT_SECRET=${{ secrets.JWT_SECRET }} \
