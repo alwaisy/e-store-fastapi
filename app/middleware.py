@@ -5,9 +5,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.requests import Request
+from honeybadger import honeybadger, contrib
+
+from app import Config
 
 logger = logging.getLogger("uvicorn.access")
 logger.disabled = True
+
+# honeybadger
+honeybadger.configure(api_key=Config.ES_HONEYBADGER_API_KEY)
 
 
 def register_middleware(app: FastAPI):
@@ -42,3 +48,4 @@ def register_middleware(app: FastAPI):
             "62.169.28.254",
         ],
     )
+    app.add_middleware(contrib.ASGIHoneybadger, params_filters=["dont-include-this"])

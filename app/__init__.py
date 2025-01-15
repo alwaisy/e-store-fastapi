@@ -1,6 +1,7 @@
 from fastapi import FastAPI as App
 
 from .auth.routes import auth_router
+from .config import Config
 from .db.main import init_db
 from .errors import register_all_errors
 from .middleware import register_middleware
@@ -26,6 +27,7 @@ app = App(
     docs_url=f"{version_prefix}/docs",
     redoc_url=f"{version_prefix}/redoc",
 )
+
 
 register_all_errors(app)
 register_middleware(app)
