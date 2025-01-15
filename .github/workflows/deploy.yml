@@ -24,7 +24,7 @@ jobs:
       - name: Build Docker image
         run: |
           echo "Building Docker image..."
-          docker build -t your-app-image .
+          docker-compose build --no-cache
 
       # Step 4: Deploy to VPS
       - name: Deploy to VPS
