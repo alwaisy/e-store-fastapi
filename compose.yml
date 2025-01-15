@@ -52,6 +52,9 @@ services:
     networks:
       - e-store-fastapi-network
 
+volumes:
+  db-data:
+
 networks:
   e-store-fastapi-network:
     driver: bridge
