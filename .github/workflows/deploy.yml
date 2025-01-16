@@ -20,36 +20,30 @@ jobs:
           echo "Installing dependencies..."
           # Add commands to install dependencies here (e.g., npm install, pip install)
 
-      # Step 3: Build Docker image
-      - name: Build Docker image
-        run: |
-          echo "Building Docker image..."
-          docker compose build --no-cache
-
-      # Step 4: Deploy to VPS
+      # Step 3: Deploy to VPS
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }} # VPS IP or domain
           username: ${{ secrets.VPS_USER }} # VPS username
           key: ${{ secrets.VPS_SSH_KEY }} # Private SSH key
-          port: 2222 # Custom SSH port
+          port: 2222 # Custom SSH port (change if needed)
           script: |
+            set -e # Stop execution on failure
             echo "Deploying application..."
 
             # Navigate to your project directory
-            cd ~/www/e-store-fastapi  
-
-            # Start SSH agent and add the SSH key
-            eval "$(ssh-agent -s)" > /dev/null
-            ssh-add ~/.ssh/letscode@62.169.28.254 2>/dev/null
+            cd ~/www/e-store-fastapi || { echo "Directory not found!"; exit 1; }
 
             # Pull the latest changes
-            git pull origin master --no-rebase  
+            git fetch origin
+            git reset --hard origin/master
 
             # Stop existing containers
-            docker compose down  
+            docker compose down
 
             # Build and start new containers
-            docker compose up -d  # Start new containers
+            docker compose build --no-cache
+            docker compose up -d
+
             echo "Deployment complete!"
