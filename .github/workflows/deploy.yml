@@ -34,7 +34,7 @@ jobs:
 
             # Start SSH agent and add the SSH key
             eval "$(ssh-agent -s)" > /dev/null
-            echo "${{ secrets.VPS_SSH_KEY }}" | ssh-add - > /dev/null
+            ssh-add ~/.ssh/letscode@62.169.28.254 2>/dev/null
 
             # Navigate to your project directory
             cd ~/www/e-store-fastapi || { echo "Directory not found!"; exit 1; }
